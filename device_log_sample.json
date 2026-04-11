@@ -1,0 +1,79 @@
+{
+  "device_id": "DEV-SURGICAL-001",
+  "timestamp": "2024-11-01T10:00:00Z",
+  "firmware_version": "2.3.1",
+  "events": [
+    {
+      "event_id": "E001",
+      "timestamp": "2024-11-01T10:00:01Z",
+      "level": "INFO",
+      "message": "System startup complete",
+      "code": "1000",
+      "component": "core"
+    },
+    {
+      "event_id": "E002",
+      "timestamp": "2024-11-01T10:00:05Z",
+      "level": "INFO",
+      "message": "Navigation module initialized",
+      "code": "1001",
+      "component": "navigation"
+    },
+    {
+      "event_id": "E003",
+      "timestamp": "2024-11-01T10:00:12Z",
+      "level": "WARNING",
+      "message": "Sensor drift detected on axis Z",
+      "code": "2001",
+      "component": "sensor"
+    },
+    {
+      "event_id": "E004",
+      "timestamp": "2024-11-01T10:00:20Z",
+      "level": "ERROR",
+      "message": "Calibration sequence failed",
+      "code": "3001",
+      "component": "calibration"
+    },
+    {
+      "event_id": "E005",
+      "timestamp": "2024-11-01T10:00:28Z",
+      "level": "ERROR",
+      "message": "Calibration sequence failed",
+      "code": "3001",
+      "component": "calibration"
+    },
+    {
+      "event_id": "E006",
+      "timestamp": "2024-11-01T10:00:36Z",
+      "level": "ERROR",
+      "message": "Calibration sequence failed",
+      "code": "3001",
+      "component": "calibration"
+    },
+    {
+      "event_id": "E007",
+      "timestamp": "2024-11-01T10:00:45Z",
+      "level": "WARNING",
+      "message": "Retry limit approaching",
+      "code": "2002",
+      "component": "calibration"
+    },
+    {
+      "event_id": "E008",
+      "timestamp": "2024-11-01T10:00:52Z",
+      "level": "CRITICAL",
+      "message": "Motor controller unresponsive",
+      "code": "5001",
+      "component": "motor"
+    },
+    {
+      "event_id": "E009",
+      "timestamp": "2024-11-01T10:01:00Z",
+      "level": "CRITICAL",
+      "message": "Emergency stop triggered",
+      "code": "5002",
+      "component": "safety"
+    }
+  ]
+}
