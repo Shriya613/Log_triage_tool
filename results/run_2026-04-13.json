@@ -1,0 +1,42 @@
+{
+  "run_id": "run_2026-04-13",
+  "timestamp": "2026-04-13",
+  "status": "completed",
+  "base_model": "google/flan-t5-base",
+  "target_repo": "Shriya613/surgical-log-triage",
+  "published": false,
+
+  "training_config": {
+    "epochs": 5,
+    "batch_size": 8,
+    "learning_rate": 0.0003,
+    "warmup_steps": 50,
+    "weight_decay": 0.01,
+    "fp16": true,
+    "train_examples": 207,
+    "eval_examples": 23,
+    "synthetic_data_seed": 42
+  },
+
+  "results": {
+    "train_loss": 6.929,
+    "train_runtime_seconds": 574.2,
+    "train_samples_per_second": 1.802,
+    "train_steps_per_second": 0.226,
+    "epochs_completed": 5
+  },
+
+  "notes": [
+    "Missing keys warning (encoder/decoder embed_tokens.weight) is expected for flan-t5 tied weights — not an error.",
+    "train_loss of 6.929 is high; target is < 2.0 before publishing to HuggingFace.",
+    "Model saved locally to model_output/final/ on Colab instance.",
+    "Not publishing until a lower-loss comparable run is achieved."
+  ],
+
+  "next_steps": [
+    "Increase synthetic training examples (230 -> 500+)",
+    "Tune learning rate or try more epochs",
+    "Evaluate model output quality manually on device_log_sample.json",
+    "Re-run and compare train_loss before publishing"
+  ]
+}

@@ -52,10 +52,21 @@ Build a Python/FastAPI triage tool for medtech companies that:
 
 ### Up Next
 - [x] **Fix 2:** Rewrite `app/summarizer.py` to use a local HuggingFace model (`flan-t5-base`) instead of OpenAI
-- [ ] **Fix 3:** Write `train.py` — generates synthetic training data and fine-tunes `flan-t5-base`
-- [ ] **Fix 4:** Push fine-tuned model to `Shriya613/surgical-log-triage` on HuggingFace Hub
+- [x] **Fix 3:** Write `train.py` — generates 230 synthetic training pairs, fine-tunes `flan-t5-base` via `Seq2SeqTrainer`, saves to `model_output/final/`, optional `--push` to HuggingFace Hub
+- [ ] **Fix 4:** Push fine-tuned model to `Shriya613/surgical-log-triage` on HuggingFace Hub *(on hold — see training run below)*
 - [ ] **Fix 5:** Add pandas to `app/parser.py` for richer analysis (time-series, drift detection)
 - [ ] **Fix 6:** Run full end-to-end test with real sample log and verify triage summary quality
+
+---
+
+## Training Runs
+
+| Run | Date | Base Model | Epochs | Train Loss | Published |
+|---|---|---|---|---|---|
+| [run_2026-04-13](results/run_2026-04-13.json) | 2026-04-13 | flan-t5-base | 5 | 6.929 | No |
+
+**Target:** train_loss < 2.0 before publishing to `Shriya613/surgical-log-triage`.
+Missing keys warning on embed_tokens.weight is expected for flan-t5 tied weights — not an error.
 
 ---
 
