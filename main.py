@@ -1,6 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
 import json
+
+load_dotenv()
 
 from app.parser import parse_log
 from app.analyzer import analyze_log
