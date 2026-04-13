@@ -298,12 +298,12 @@ def main():
     )
 
     trainer = Seq2SeqTrainer(
-        model         = model,
-        args          = training_args,
-        train_dataset = tokenized["train"],
-        eval_dataset  = tokenized["test"],
-        tokenizer     = tokenizer,
-        data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding=True),
+        model              = model,
+        args               = training_args,
+        train_dataset      = tokenized["train"],
+        eval_dataset       = tokenized["test"],
+        processing_class   = tokenizer,
+        data_collator      = DataCollatorForSeq2Seq(tokenizer, model=model, padding=True),
     )
 
     # ── Step 5: train ─────────────────────────────────────────────────────────
