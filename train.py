@@ -451,7 +451,16 @@ def load_ai4i_data(csv_path: str) -> list[dict]:
         print("pandas required for external data loading — skipping.")
         return []
 
-    df = pd.read_csv(csv_path)
+    path = Path(csv_path)
+    if not path.exists():
+        print(f"\nERROR: File not found: {csv_path}")
+        print("To find where your file was uploaded in Colab, run:")
+        print("  !find / -name '*.csv' 2>/dev/null | grep -i ai4i")
+        print("Then re-run with the correct path, e.g.:")
+        print("  !python train.py --extra-data /content/ai4i2020.csv\n")
+        return []
+
+    df = pd.read_csv(path)
     failure_cols = [c for c in ["TWF", "HDF", "PWF", "OSF", "RNF"] if c in df.columns]
     if not failure_cols:
         print(f"WARNING: expected failure columns not found in {csv_path} — skipping.")
