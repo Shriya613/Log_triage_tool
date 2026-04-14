@@ -1,0 +1,46 @@
+{
+  "run_id": "run_2026-04-13b",
+  "timestamp": "2026-04-13",
+  "status": "completed_with_issues",
+  "base_model": "google/flan-t5-base",
+  "target_repo": "Shriya613/surgical-log-triage",
+  "published": false,
+
+  "training_config": {
+    "epochs": 5,
+    "batch_size": 8,
+    "learning_rate": 0.0003,
+    "warmup_steps": 50,
+    "weight_decay": 0.01,
+    "fp16": true,
+    "train_examples": 450,
+    "eval_examples": 50,
+    "synthetic_data_seed": 42,
+    "extra_data": "ai4i2020.csv"
+  },
+
+  "results": {
+    "train_loss": 0,
+    "eval_loss": "nan",
+    "train_runtime_seconds": 364.7,
+    "train_samples_per_second": 6.17,
+    "train_steps_per_second": 0.781,
+    "epochs_completed": 5
+  },
+
+  "diagnosis": "fp16 numerical instability on small dataset. Gradients underflowed to zero (train_loss=0) and generation overflowed to NaN during eval (eval_loss=nan). Model weights are likely corrupted — do not use this checkpoint.",
+
+  "fix_applied": "Set fp16=False in train.py. fp16 speed gains are not worth the instability on datasets this small.",
+
+  "notes": [
+    "train_loss=0 is not a good result — it means gradients vanished, not that the model learned perfectly.",
+    "eval_loss=nan confirms fp16 overflow during generation with predict_with_generate=True.",
+    "Improved data: 500 synthetic examples (up from 230), 7 scenario types, 5-8 summary variants each.",
+    "External AI4I dataset was loaded successfully this run."
+  ],
+
+  "next_steps": [
+    "Re-run with fp16=False",
+    "Target: train_loss < 2.0, eval_loss stable (not nan)"
+  ]
+}

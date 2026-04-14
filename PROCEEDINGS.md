@@ -64,8 +64,10 @@ Build a Python/FastAPI triage tool for medtech companies that:
 | Run | Date | Base Model | Epochs | Train Loss | Published |
 |---|---|---|---|---|---|
 | [run_2026-04-13](results/run_2026-04-13.json) | 2026-04-13 | flan-t5-base | 5 | 6.929 | No |
+| [run_2026-04-13b](results/run_2026-04-13b.json) | 2026-04-13 | flan-t5-base | 5 | 0 / nan ❌ | No |
 
-**Target:** train_loss < 2.0 before publishing to `Shriya613/surgical-log-triage`.
+**Target:** train_loss < 2.0, eval_loss stable before publishing to `Shriya613/surgical-log-triage`.
+Run 13b failed due to fp16 instability (train_loss=0, eval_loss=nan) — fp16 disabled for next run.
 Missing keys warning on embed_tokens.weight is expected for flan-t5 tied weights — not an error.
 
 ---

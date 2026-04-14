@@ -590,7 +590,7 @@ def main():
         load_best_model_at_end      = True,
         predict_with_generate       = True,
         logging_steps               = 10,
-        fp16                        = True,
+        fp16                        = False,
         report_to                   = "none",
     )
 
