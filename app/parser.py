@@ -1,112 +1,154 @@
 """
 parser.py
-Validates incoming JSON log payloads against the expected schema,
-then uses pandas to compute time-based metrics: log duration, event rate,
-out-of-order timestamps, and rapid repeat errors.
-Raises ValueError with a clear message if required fields are missing or malformed.
+Validates incoming JSON log payloads with soft validation:
+  - Collects ALL schema issues instead of raising on the first error
+  - Returns schema_valid=False + populated schema_issues on bad input
+  - Always returns a result — even malformed logs produce a best-effort parse
+  - Runs pandas time-series analysis on whatever valid events are present
 """
 
 import pandas as pd
+from app.schemas import VALID_LEVELS
 
-REQUIRED_TOP_LEVEL   = {"device_id", "timestamp", "events"}
+REQUIRED_TOP_LEVEL    = {"device_id", "timestamp", "events"}
 REQUIRED_EVENT_FIELDS = {"event_id", "timestamp", "level", "message"}
-VALID_LEVELS         = {"INFO", "WARNING", "ERROR", "CRITICAL"}
 
-# Errors repeating faster than this (seconds) are flagged as a rapid-repeat loop
+# Errors firing faster than this (seconds avg interval) are flagged as rapid-repeat
 RAPID_REPEAT_THRESHOLD_SECONDS = 10
+# Numeric values beyond this magnitude are flagged as extreme
+EXTREME_VALUE_THRESHOLD = 1000.0
 
 
 def parse_log(data: dict) -> dict:
     """
-    Validate, normalize, and time-analyse a raw JSON log payload.
-
-    Args:
-        data: Raw parsed JSON dict from the uploaded file.
+    Soft-validate and parse a raw JSON log payload.
 
     Returns:
-        Validated log dict, extended with time-based metrics under
-        the key 'time_analysis'.
-
-    Raises:
-        ValueError: If required fields are missing or values are invalid.
+        schema_valid (bool)       — True only if zero issues found
+        schema_issues (list[str]) — all validation problems, human-readable
+        device_id, timestamp, firmware_version
+        events (list[dict])       — best-effort validated events
+        time_analysis (dict)      — pandas-derived metrics
     """
-    # ── Schema validation ──────────────────────────────────────────────────────
-    missing = REQUIRED_TOP_LEVEL - data.keys()
-    if missing:
-        raise ValueError(f"Missing required top-level fields: {missing}")
+    issues: list[str] = []
+
+    # ── Top-level required fields ──────────────────────────────────────────────
+    missing_top = REQUIRED_TOP_LEVEL - data.keys()
+    for field in sorted(missing_top):
+        issues.append(f"Missing required top-level field: '{field}'")
+
+    if "events" not in data:
+        return _empty_result(issues)
 
     if not isinstance(data["events"], list):
-        raise ValueError("'events' must be a list.")
+        issues.append("'events' must be a list")
+        return _empty_result(issues)
 
     if len(data["events"]) == 0:
-        raise ValueError("'events' list is empty. Nothing to triage.")
+        issues.append("'events' list is empty — nothing to triage")
+        return _empty_result(issues)
 
+    # ── Per-event validation ────────────────────────────────────────────────────
     validated_events = []
     for i, event in enumerate(data["events"]):
         if not isinstance(event, dict):
-            raise ValueError(f"Event at index {i} is not a valid object.")
+            issues.append(f"Event[{i}]: not a valid object (got {type(event).__name__})")
+            continue
 
-        missing_fields = REQUIRED_EVENT_FIELDS - event.keys()
-        if missing_fields:
-            raise ValueError(f"Event {i} missing fields: {missing_fields}")
+        # Missing required fields
+        for field in sorted(REQUIRED_EVENT_FIELDS - event.keys()):
+            issues.append(f"Event[{i}]: missing required field '{field}'")
 
-        level = str(event["level"]).upper()
-        if level not in VALID_LEVELS:
-            raise ValueError(
-                f"Event {i} has invalid level '{event['level']}'. "
-                f"Must be one of: {VALID_LEVELS}"
-            )
+        # Level validation
+        if "level" in event:
+            level = str(event["level"]).upper()
+            if level not in VALID_LEVELS:
+                issues.append(
+                    f"Event[{i}]: invalid level '{event['level']}' "
+                    f"(expected one of {sorted(VALID_LEVELS)})"
+                )
 
+        # Numeric value type check
+        if "value" in event and event["value"] is not None:
+            try:
+                float(event["value"])
+            except (TypeError, ValueError):
+                issues.append(
+                    f"Event[{i}]: 'value' must be numeric, "
+                    f"got {type(event['value']).__name__} ('{event['value']}')"
+                )
+
+        # Extreme value check
+        if "value" in event and event["value"] is not None:
+            try:
+                v = float(event["value"])
+                if abs(v) > EXTREME_VALUE_THRESHOLD:
+                    issues.append(
+                        f"Event[{i}]: extreme sensor value {v} "
+                        f"(threshold ±{EXTREME_VALUE_THRESHOLD})"
+                    )
+            except (TypeError, ValueError):
+                pass
+
+        # Best-effort normalisation — use whatever fields are present
         validated_events.append({
-            "event_id":  str(event["event_id"]),
-            "timestamp": str(event["timestamp"]),
-            "level":     level,
-            "message":   str(event["message"]),
+            "event_id":  str(event.get("event_id", f"unknown_{i}")),
+            "timestamp": str(event.get("timestamp", "")),
+            "level":     str(event.get("level", "INFO")).upper(),
+            "message":   str(event.get("message", "")),
             "code":      str(event.get("code", "N/A")),
             "component": str(event.get("component", "unknown")),
+            "value":     event.get("value"),
         })
 
-    # ── Pandas time analysis ───────────────────────────────────────────────────
-    time_analysis = _analyse_timestamps(validated_events)
+    # ── Pandas time analysis ────────────────────────────────────────────────────
+    time_analysis = _analyse_timestamps(validated_events) if validated_events else {}
 
     return {
-        "device_id":        str(data["device_id"]),
-        "timestamp":        str(data["timestamp"]),
+        "schema_valid":     len(issues) == 0,
+        "schema_issues":    issues,
+        "device_id":        str(data.get("device_id", "UNKNOWN")),
+        "timestamp":        str(data.get("timestamp", "")),
         "firmware_version": str(data.get("firmware_version", "unknown")),
         "events":           validated_events,
         "time_analysis":    time_analysis,
     }
 
 
+# ── Internal helpers ──────────────────────────────────────────────────────────
+
+def _empty_result(issues: list[str]) -> dict:
+    """Return a minimal failed-parse result when events cannot be processed."""
+    return {
+        "schema_valid":     False,
+        "schema_issues":    issues,
+        "device_id":        "UNKNOWN",
+        "timestamp":        "",
+        "firmware_version": "unknown",
+        "events":           [],
+        "time_analysis":    {},
+    }
+
+
 def _analyse_timestamps(events: list[dict]) -> dict:
     """
     Build a DataFrame from validated events and compute time-based metrics.
-    All timestamp parsing uses coerce so a single bad timestamp doesn't crash
-    the whole log — unparseable entries become NaT and are excluded from maths.
+    Unparseable timestamps become NaT and are excluded from calculations.
     """
     df = pd.DataFrame(events)
-
-    # Parse timestamps; bad values become NaT
     df["ts"] = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
-
     parseable = df.dropna(subset=["ts"]).sort_values("ts")
 
     if parseable.empty:
-        return {"note": "No parseable timestamps found — time analysis unavailable."}
+        return {"note": "No parseable timestamps — time analysis unavailable."}
 
-    first_ts = parseable["ts"].iloc[0]
-    last_ts  = parseable["ts"].iloc[-1]
-
-    # Seconds from the first event for each row
-    df["relative_seconds"] = (df["ts"] - first_ts).dt.total_seconds()
-
+    first_ts   = parseable["ts"].iloc[0]
+    last_ts    = parseable["ts"].iloc[-1]
     duration_s = (last_ts - first_ts).total_seconds()
     rate_per_min = (len(parseable) / duration_s * 60) if duration_s > 0 else 0.0
-
-    # Events whose timestamp is earlier than the previous event
-    out_of_order = int((parseable["ts"].diff().dt.total_seconds().dropna() < 0).sum())
-
-    # Rapid-repeat errors: same error code firing multiple times within threshold
+    out_of_order = int(
+        (parseable["ts"].diff().dt.total_seconds().dropna() < 0).sum()
+    )
     rapid = _detect_rapid_repeats(parseable)
 
     return {
@@ -119,13 +161,10 @@ def _analyse_timestamps(events: list[dict]) -> dict:
 
 def _detect_rapid_repeats(df: pd.DataFrame) -> list[dict]:
     """
-    For each error/critical code that appears more than once, compute the
-    average interval between occurrences. Return codes where that average
-    falls below RAPID_REPEAT_THRESHOLD_SECONDS — these suggest a tight loop
-    or stuck-retry condition rather than isolated failures.
+    Return error/critical codes whose average firing interval is below the
+    RAPID_REPEAT_THRESHOLD_SECONDS — indicates a tight loop or stuck retry.
     """
     error_df = df[df["level"].isin({"ERROR", "CRITICAL"}) & (df["code"] != "N/A")]
-
     rapid = []
     for code, group in error_df.groupby("code"):
         if len(group) < 2:
@@ -139,5 +178,4 @@ def _detect_rapid_repeats(df: pd.DataFrame) -> list[dict]:
                 "occurrences":          len(group),
                 "avg_interval_seconds": round(avg_interval, 2),
             })
-
     return rapid
