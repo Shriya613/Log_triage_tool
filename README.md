@@ -13,7 +13,7 @@ Built with Python, FastAPI, and a fine-tuned HuggingFace model (`Shriya613/surgi
 - Rule-based anomaly detection: repeated error codes, CRITICAL events, stuck states, component breakdowns
 - Pandas-based time-series analysis: log duration, event rate, out-of-order timestamps, rapid-repeat error detection
 - LLM-generated triage summaries via a fine-tuned `flan-t5-base` model, with a rule-based fallback
-- Full pytest suite: unit tests for parser + analyzer, integration tests for API
+- Unit tests for parser + analyzer, integration tests for API
 
 ---
 
